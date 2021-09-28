@@ -1,9 +1,10 @@
 import pyautogui
-from data import Email
-import webbrowser
+from data import Email, Ticket
+from selenium import webdriver
 
-for x in Email.to:
-    print(x)
+#driver = webdriver.Chrome()
 
-#Email.set(Email.cc)
-webbrowser.open('www.google.ca')
+Email.startNewEmail()
+# driver.quit()
+Email.set(Email.to)
+Email.set(Email.cc)
