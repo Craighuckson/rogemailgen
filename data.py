@@ -30,6 +30,6 @@ class Email:
 
 
 class Ticket:
-	def showRecords(fibrename = ''):
+    def showRecords(fibrename = ''):
         driver.get('http://10.13.218.247/go360rogersviewer/')
         driver.find_element_by_id('username').send_keys('craig.huckson')
