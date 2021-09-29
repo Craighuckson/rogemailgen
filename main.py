@@ -6,5 +6,7 @@ from selenium import webdriver
 
 Email.startNewEmail()
 # driver.quit()
+
 Email.set(Email.to)
-Email.set(Email.cc)
+#pyautogui.press('tab')
+#Email.set(Email.cc)
