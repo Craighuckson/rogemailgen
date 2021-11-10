@@ -16,9 +16,9 @@ else:
     pyautogui.alert('There was a problem')
 
 pyautogui.alert('Please turn on VPN')
-fn = pyautogui.prompt('Please enter fibre name')
 Ticket.show_records(fn)
-
+img = Ticket.get_screenshot()
+fn = pyautogui.prompt('Please enter fibre name')
 #run disconnect.py
 pyautogui.alert('Press OK to disconnect VPN')
 cd = 'C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\'
@@ -61,4 +61,6 @@ sheet['B8'] = description
 sheet['B9'] = GO360_SCREENSHOT
 wb.save(new_filename)
 
-pyautogui.alert(f'Excel file saved to C:\\Users\\Cr\\{new_filename}')
+pyautogui.alert(f'Excel file saved as {new_filename}')
+
+xlfile = new_filename
