@@ -95,7 +95,7 @@ Craig Huckson
         pyautogui.alert("Email saved to drafts")
 
     def write_tracer_wire(
-        tolist, cclist, ticketnumber, fibrenumber, fibrecount, address, xl, pic
+        tolist, cclist, ticketnumber,address, xl, pic
     ):
         acct = Email.start()
         st = (ticketnumber, address, "tracer wire needed")
@@ -110,13 +110,21 @@ Thanks,
 Craig Huckson
                 """
         m = Message(
-            account - acct,
+            account=acct,
             folder=acct.drafts,
             subject=substr,
             body=bodystr,
             to_recipients=tolist,
             cc_recipients=cclist,
         )
+        with open(xl, mode='rb') as spreadsheet:
+            xlfile = FileAttachment(name = xl, content = spreadsheet.read())
+        with open(pic, mode='rb') as img:
+            picture = FileAttachment(name = pic, content = img.read())
+        m.attach(xlfile)
+        m.attach(picture)
+        m.save()
+        pyautogui.alert('Email saved to drafts')
 
     def get_attachments(account, ticketnumber):
         # Search for attachments using ticket number entered and save them to \Desktop\Temp

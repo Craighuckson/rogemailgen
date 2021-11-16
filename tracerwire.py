@@ -1,40 +1,27 @@
-#tracerwire.py
-#fill in form automatically and send email to rogers
+#demo for tracer wire email
 
-#todo: navigate to trello and select a page
+from data import Email
+from pathlib import Path
+import easygui as eg
 
-#todo: fill in excel sheet programatically 
+#get filename
+xl = eg.fileopenbox(msg='Please select excel file',default='*.xlsx')
+pic = eg.fileopenbox(msg='Please select screenshot',default='*.png')
 
-#get ticket info
-ticketnumber = int(input("Ticket number? "))
-city = input("City/Town")
-region = 'York'
-fibrename = input("Fibre name (from Go360)? ")
-fibrecount = int(input("Fibre count? "))
-LSPNAME = 'CCS'
-CONTACTNAME = 'Craig Huckson'
-CONTACTPHONE = '(647)588-0906'
-CONTACTEMAIL = 'craig.huckson@cablecontrol.ca'
-description = input('Tracer wire to/from (ie x to y)? ')
-GO360_SCREENSHOT = 'Y'
-new_filename = input('Enter new filename? (must end in .xlsx) ')
+#remove unnecessary file info from filename
+x1 = Path(xl)
+xl = x1.stem + x1.suffix
 
-#initialize sheet
-import openpyxl
-wb = openpyxl.load_workbook('Tracer Wire Request Form.xlsx')
-sheet = wb['Sheet1']
-#insert data and save
-sheet['B4'] = ticketnumber
-sheet['B5'] = city + ',' + region
-sheet['B6'] = fibrename
-sheet['B7'] = fibrecount
-sheet['D4'] = LSPNAME
-sheet['D5'] = CONTACTNAME
-sheet['D6'] = CONTACTPHONE
-sheet['D7'] = CONTACTEMAIL
-sheet['B8'] = description
-sheet['B9'] = GO360_SCREENSHOT
-wb.save(new_filename)
+p1 = Path(pic)
+pic = p1.stem + p1.suffix
 
-print(f'Excel file saved to C:\\Users\\Cr\\Desktop\\TEMP\\{new_filename}')
+#get ticket number and address
+vals = eg.multenterbox(msg='Please enter ticket number and address',
+                       title='Enter values',
+                       fields=['Ticket number: ','Address: ']
+                       )
 
+
+Email.write_tracer_wire(Email.tolist,Email.cclist,vals[0],vals[1],xl,pic)
+                    
+                        

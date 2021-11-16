@@ -1,48 +1,51 @@
-from data import Email, Ticket
-import pyautogui
-import subprocess
+from data import Email, Ticket,VPN, Driver
+import pyautogui as pag
+import sys
 
-tn = pyautogui.prompt('Enter ticket number')
-acct = Email.start()
-Email.get_attachments(acct,tn)
-#run connect.py
-cd = 'C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\'
+tn = Ticket.get_ticket_number()
 
-rc = subprocess.run('C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\connect.bat', cwd = cd, capture_output = True, text = True)
+view_ticket = pag.confirm('View ticket?', buttons=['Yes','No'])
+if view_ticket == 'Yes':
+    try:
+        acct = Email.start()
+    except ConnectionError:
+        pag.alert('There was an error')
+        sys.exit()
+    Email.get_attachments(acct,tn)
 
-if rc.returncode == 0:
-    pyautogui.alert('VPN connected')
-else:
-    pyautogui.alert('There was a problem')
+view_records = pag.confirm('View records?', buttons = ['Yes','No'])
+if view_records == 'Yes':
+    vpn = VPN.status()
+if not vpn:
+    vpn = VPN.connect()
+try:
+    driver = Driver.start()
+    Ticket.show_records(driver)
+except:
+    pag.alert('There was a problem')
+    driver.quit()
+    vpn = VPN.disconnect()
+    sys.exit()
 
-pyautogui.alert('Please turn on VPN')
-Ticket.show_records(fn)
 img = Ticket.get_screenshot()
-fn = pyautogui.prompt('Please enter fibre name')
-#run disconnect.py
-pyautogui.alert('Press OK to disconnect VPN')
-cd = 'C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\'
-dcp = subprocess.run(cd + 'disconnect.bat', capture_output = True, cwd = cd)
+fn = Ticket.get_fibre_name()
 
-if dcp.returncode == 0:
-    pyautogui.alert('VPN disconnected!')
-else:
-    pyautogui.alert('An error was present')
+vpn = VPN.disconnect()
 
 #now make the excel spreadsheet
 
 ticketnumber = tn
-city = pyautogui.prompt("City/Town")
+city = pag.prompt("City/Town")
 region = 'York'
 fibrename = fn
-fibrecount = int(pyautogui.prompt("Fibre count? "))
+fibrecount = int(pag.prompt("Fibre count? "))
 LSPNAME = 'CCS'
 CONTACTNAME = 'Craig Huckson'
 CONTACTPHONE = '(647)588-0906'
 CONTACTEMAIL = 'craig.huckson@cablecontrol.ca'
-description = pyautogui.prompt('Tracer wire to/from (ie x to y)? ')
+description = pag.prompt('Tracer wire to/from (ie x to y)? ')
 GO360_SCREENSHOT = 'Y'
-new_filename = pyautogui.prompt('Enter new filename? (must end in .xlsx) ')
+new_filename = pag.prompt('Enter new filename? (must end in .xlsx) ')
 
 #initialize sheet
 import openpyxl
@@ -61,6 +64,9 @@ sheet['B8'] = description
 sheet['B9'] = GO360_SCREENSHOT
 wb.save(new_filename)
 
-pyautogui.alert(f'Excel file saved as {new_filename}')
+pag.alert(f'Excel file saved as {new_filename}')
 
 xlfile = new_filename
+add = Ticket.get_address()
+
+Email.write_tracer_wire(Email.tolist,Email.cclist, tn, add, xlfile, img)
