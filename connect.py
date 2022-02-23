@@ -1,16 +1,26 @@
 import subprocess
+import PySimpleGUI as sg
+import os
+sg.theme('Dark Blue 8')
 
-cd = "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\"
+layout = [[sg.Text('Waiting for VPN')],
+         [sg.Text(key='-OUT-')]]
+window = sg.Window('VPN CONNECTING',layout)
 
-rc = subprocess.run(
-    "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\connect.bat",
-    cwd=cd,
-    capture_output=True,
-    text=True,
-)
+#cd = "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\"
 
-print('Making VPN connection...')
-if rc.returncode == 0:
-    print("VPN connected")
-else:
-    print("There was a problem")
+#os.system('net stop vpnagent')
+#os.system('net start vpnagent')
+os.chdir('C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\')
+os.system('connect.bat')
+print('Connected')
+'''
+rc = subprocess.Popen(
+     "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\connect.bat")
+while True:
+    if rc.poll() is not None:
+        break
+    event, value = window.read()
+    window.refresh()
+print("VPN connected")
+'''

@@ -2,12 +2,19 @@ from data import Email, Ticket,VPN, Driver
 import pyautogui as pag
 import sys
 
+def error_cleanup():
+    pag.alert('There was a problem')
+    driver.quit() 
+    VPN.disconnect()
+    sys.exit()
+
 tn = Ticket.get_ticket_number()
 
 view_ticket = pag.confirm('View ticket?', buttons=['Yes','No'])
 if view_ticket == 'Yes':
     try:
         acct = Email.start()
+        print('Obtaining ticket...')
     except ConnectionError:
         pag.alert('There was an error')
         sys.exit()
@@ -15,25 +22,39 @@ if view_ticket == 'Yes':
 
 view_records = pag.confirm('View records?', buttons = ['Yes','No'])
 if view_records == 'Yes':
+    print('Connecting VPN...')
     vpn = VPN.status()
-if not vpn:
-    vpn = VPN.connect()
+    if not vpn:
+        vpn = VPN.connect()
+    try:
+        print('Starting WebDriver')
+        driver = Driver.start()
+        print('Loading Go360')
+        Ticket.show_records(driver)
+    except:
+        error_cleanup()
+
 try:
-    driver = Driver.start()
-    Ticket.show_records(driver)
+    img = Ticket.get_screenshot()
 except:
-    pag.alert('There was a problem')
-    driver.quit()
-    vpn = VPN.disconnect()
-    sys.exit()
+    error_cleanup()
+try:
+    fn = Ticket.get_fibre_name()
+except:
+    pass
 
-img = Ticket.get_screenshot()
-fn = Ticket.get_fibre_name()
-
-vpn = VPN.disconnect()
+try:
+    if vpn:
+        print('Disconnecting VPN...')
+        vpn = VPN.disconnect()
+    if driver:
+        print('Stopping Webdriver')
+        driver.quit()
+except NameError:
+    pass
 
 #now make the excel spreadsheet
-
+pag.alert('Making spreadsheet')
 ticketnumber = tn
 city = pag.prompt("City/Town")
 region = 'York'

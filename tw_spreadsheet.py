@@ -4,7 +4,7 @@ import pyautogui
 ticketnumber = pyautogui.prompt('Enter ticket number')
 city = pyautogui.prompt("City/Town")
 region = 'York'
-fibrename = int(pyautogui.prompt('Enter fibre name'))
+fibrename = pyautogui.prompt('Enter fibre name')
 fibrecount = int(pyautogui.prompt("Fibre count? "))
 LSPNAME = 'CCS'
 CONTACTNAME = 'Craig Huckson'

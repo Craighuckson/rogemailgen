@@ -1,0 +1,105 @@
+# rogworkgui.py
+import base64
+from data import Email, Ticket, Driver
+import PySimpleGUI as sg
+import io
+import PIL.Image
+sg.theme("black")
+
+# functions#
+
+
+def convert_to_bytes(file_or_bytes, resize=None):
+    """
+    Will convert into bytes and optionally resize an image that is a file or a base64 bytes object.
+    Turns into  PNG format in the process so that can be displayed by tkinter
+    :param file_or_bytes: either a string filename or a bytes base64 image object
+    :type file_or_bytes:  (Union[str, bytes])
+    :param resize:  optional new size
+    :type resize: (Tuple[int, int] or None)
+    :return: (bytes) a byte-string object
+    :rtype: (bytes)
+    """
+    if isinstance(file_or_bytes, str):
+        img = PIL.Image.open(file_or_bytes)
+    else:
+        try:
+            img = PIL.Image.open(io.BytesIO(base64.b64decode(file_or_bytes)))
+        except Exception as e:
+            dataBytesIO = io.BytesIO(file_or_bytes)
+            img = PIL.Image.open(dataBytesIO)
+
+    cur_width, cur_height = img.size
+    if resize:
+        new_width, new_height = resize
+        scale = min(new_height / cur_height, new_width / cur_width)
+        img = img.resize(
+            (int(cur_width * scale), int(cur_height * scale)), PIL.Image.ANTIALIAS
+        )
+    bio = io.BytesIO()
+    img.save(bio, format="PNG")
+    del img
+    return bio.getvalue()
+
+
+tab_tracerwire_layout = [
+    [sg.T("Fibre name: "), sg.Input(k="fn_tw", do_not_clear=False)],
+    [sg.Text("Fibre size: "), sg.Input(k="fs_tw", do_not_clear=False)],
+    [sg.Text("To and From"), sg.Input(k="tofrom")],
+    [sg.Text("Screenshot"), sg.I(k="pic"), sg.FileBrowse()],
+    [sg.Text("Excel file: "), sg.I(k="xl"), sg.FileBrowse()],
+    [sg.Button('Generate Email',k='email_tw'),sg.Button("Make Excel File", k="makexl")],
+]
+
+tab_proposed_layout = [
+    [sg.Text("Fibre name: "), sg.Input(k="fn_prop")],
+    [sg.T("Fiber size: "), sg.I(k="fs_prop")],
+    [sg.Button('Generate email', k='email_prop')]
+]
+
+tab_inaccurate_layout = [
+    [sg.Text("Describe issue: "), sg.Multiline(k="description")],
+    [sg.Button("Generate email", k="email_inaccurate")],
+]
+
+layout = [
+    # [sg.Titlebar(title='Email Helper')],
+    [sg.Text("Ticket Number: "), sg.Input(k="tn")],
+    [sg.Text("Address: "), sg.Input(k="address")],
+    [
+        sg.TabGroup(
+            [
+                [
+                    sg.Tab("Tracer Wire", tab_tracerwire_layout),
+                    sg.Tab("Proposed", tab_proposed_layout),
+                    sg.Tab("Inaccurate", tab_inaccurate_layout),
+                ]
+            ]
+        )
+    ],
+    [sg.Button("Get attachments",k="get_attachments"), sg.Button("View Records",k="view_records")],
+]
+
+window = sg.Window("Email Helper", layout,finalize=True)
+
+while True:
+    event, values = window.read()
+    if event == sg.WIN_CLOSED:
+        break
+    if event == 'email_tw':
+        Email.write_tracer_wire(Email.tolist,Email.cclist,values['tn'],values['address'],values['xl'],values['pic'])
+    if event == 'email_prop':
+        Email.write_proposed(Email.tolist, Email.cclist, values['tn'],values['fn_prop'],values['fs_prop'],values['address'])
+    if event == 'email_inaccurate':
+        Email.write_inaccurate(Email.tolist, Email.cclist, values['address'],values['description'])
+    if event == 'makexl':
+        Ticket.generate_excel(values['tn'],values['address'],values['fn_tw'],values['fs_tw'],values['tofrom'])
+    if event == 'get_attachments':
+        acct = Email.start()
+        Email.get_attachments(acct,values['tn'])
+    if event == 'view_records':
+        sg.popup('Ensure VPN is connected and hit OK to continue')
+        d = Driver.start()
+        Ticket.show_records(d)
+        
+        

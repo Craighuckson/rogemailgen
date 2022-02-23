@@ -1,3 +1,6 @@
+import PySimpleGUI as sg
+sg.theme('black')
+
 from ntpath import join
 import pyautogui
 from selenium import webdriver
@@ -9,6 +12,7 @@ from exchangelib import DELEGATE, Account, Credentials
 from exchangelib import Message, FileAttachment, ItemAttachment
 from exchangelib.configuration import Configuration
 from exchangelib.transport import NTLM
+import openpyxl
 
 
 class Driver:
@@ -28,23 +32,27 @@ class Email:
         "dmcgrath@cablecontrol.ca",
         "b.parsons@cablecontrol.ca",
         "kadisha@cablecontrol.ca",
-        "mike.falkiner@cablecontrol.ca",
+        "nicole@cablecontrol.ca",
+        "tony.knibbe@cablecontrol.ca",
         "ray.whalen@cablecontrol.ca",
     ]
 
     def start():
         # Create account instance to get data
-        credentials = Credentials("craig.huckson@cablecontrol.ca", "Locatesup1")
-        config = Configuration(
-            server="webapp.cablecontrol.ca", auth_type=NTLM, credentials=credentials
-        )
-        account = Account(
-            primary_smtp_address="craig.huckson@cablecontrol.ca",
-            config=config,
-            autodiscover=False,
-            access_type=DELEGATE,
-        )
-        return account
+        try:
+            credentials = Credentials("craig.huckson@cablecontrol.ca", "Locatesup1")
+            config = Configuration(
+                server="webapp.cablecontrol.ca", auth_type=NTLM, credentials=credentials
+            )
+            account = Account(
+                primary_smtp_address="craig.huckson@cablecontrol.ca",
+                config=config,
+                autodiscover=False,
+                access_type=DELEGATE,
+            )
+            return account
+        except AttributeError:
+            sg.popup("Couldn't access email account")
 
     def write_proposed(tolist, cclist, ticketnumber, fibrenumber, fibrecount, address):
         acct = Email.start()
@@ -53,7 +61,7 @@ class Email:
         bodystr = f"""
 Tabitha / Naz:
 
-{fibrecount} count {fibrenumber} shows as proposed in Go360 but has not yet been installed in the field.
+{fibrecount} count {fibrenumber} shows as proposed in Go360 but was not installed in the field at the time of the locate.
 
 Thanks,
 
@@ -68,7 +76,7 @@ Craig Huckson
             cc_recipients=cclist,
         )
         m.save()
-        pyautogui.alert("Email saved to drafts")
+        sg.popup("Email saved to drafts")
 
     def write_inaccurate(tolist, cclist, ticketnumber, address, report):
         acct = Email.start()
@@ -92,7 +100,7 @@ Craig Huckson
             cc_recipients=cclist,
         )
         m.save()
-        pyautogui.alert("Email saved to drafts")
+        sg.popup("Email saved to drafts")
 
     def write_tracer_wire(
         tolist, cclist, ticketnumber,address, xl, pic
@@ -117,14 +125,17 @@ Craig Huckson
             to_recipients=tolist,
             cc_recipients=cclist,
         )
-        with open(xl, mode='rb') as spreadsheet:
-            xlfile = FileAttachment(name = xl, content = spreadsheet.read())
-        with open(pic, mode='rb') as img:
-            picture = FileAttachment(name = pic, content = img.read())
-        m.attach(xlfile)
-        m.attach(picture)
-        m.save()
-        pyautogui.alert('Email saved to drafts')
+        try:
+            with open(xl, mode='rb') as spreadsheet:
+                xlfile = FileAttachment(name = xl, content = spreadsheet.read())
+            with open(pic, mode='rb') as img:
+                picture = FileAttachment(name = pic, content = img.read())
+            m.attach(xlfile)
+            m.attach(picture)
+            m.save()
+        except FileNotFoundError:
+            sg.popup('Valid spreadsheet or picture not attached')
+        sg.popup('Email saved to drafts')
 
     def get_attachments(account, ticketnumber):
         # Search for attachments using ticket number entered and save them to \Desktop\Temp
@@ -212,6 +223,29 @@ class Ticket:
         im = im + ".png"
         return im
 
+    def generate_excel(tn,address,fn,fs,tofrom):
+        new_filename = sg.popup_get_text('Enter filename') + '.xlsx'
+        LSPNAME = 'CCS'
+        CONTACTNAME = 'Craig Huckson'
+        CONTACTPHONE = '(647)588-0906'
+        CONTACTEMAIL = 'craig.huckson@cablecontrol.ca'
+        REGION = 'York'
+        GO360_SCREENSHOT = 'Y'
+        wb = openpyxl.load_workbook('Tracer Wire Request Form.xlsx')
+        sheet = wb['Sheet1']
+        sheet['B4'] = tn
+        sheet['B5'] = address.split(', ')[1] + ", " + REGION
+        sheet['B6'] = fn
+        sheet['B7'] = fs
+        sheet['D4'] = LSPNAME
+        sheet['D5'] = CONTACTNAME
+        sheet['D6'] = CONTACTPHONE
+        sheet['D7'] = CONTACTEMAIL
+        sheet['B8'] = tofrom
+        sheet['B9'] = GO360_SCREENSHOT
+        wb.save(new_filename)
+        sg.popup(f'Excel file saved as {new_filename}')
+
 
 class VPN:
     def status(vpn=""):
@@ -228,6 +262,7 @@ class VPN:
             capture_output=True,
             text=True,
         )
+        
         if rc.returncode == 0:
             pyautogui.alert("VPN connected")
         else:
