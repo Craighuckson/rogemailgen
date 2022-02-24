@@ -33,6 +33,3 @@ class Trello:
 		response = requests.request("GET",url,headers=headers,params=params)
 		items = json.loads(response.text)
 		return [x['name'] for x in items]
-
-t =  Trello()
-print(t.get_cards_from_list(NEW_PROPOSED_FIBRE))

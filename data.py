@@ -139,6 +139,8 @@ Craig Huckson
 
     def get_attachments(account, ticketnumber):
         # Search for attachments using ticket number entered and save them to \Desktop\Temp
+        # returns a file list
+        file_list = []
         item = account.inbox.filter(subject__contains=ticketnumber)
         for attachment in item[0].attachments:
             if isinstance(attachment, FileAttachment):
@@ -147,13 +149,14 @@ Craig Huckson
                 )
                 with open(desktoptemp, "wb") as f:
                     f.write(attachment.content)
+                file_list.append(desktoptemp)
                 print("Saved attachment to", desktoptemp)
                 # Shows images
-                webbrowser.open(desktoptemp)
+                #webbrowser.open(desktoptemp)
             elif isinstance(attachment, ItemAttachment):
                 if isinstance(attachment.item, Message):
                     print(attachment.item.subject, attachment.item.body)
-
+        return file_list
 
 class Ticket:
     def get_ticket_number():
