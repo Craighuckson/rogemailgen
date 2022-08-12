@@ -1,7 +1,7 @@
 # rogworkgui.py
 import base64
 from trello import *
-from data import Email, Ticket, Driver
+from data import Email, Ticket, Driver, VPN
 import PySimpleGUI as sg
 import io
 import PIL.Image
@@ -44,7 +44,7 @@ def convert_to_bytes(file_or_bytes, resize=None):
     return bio.getvalue()
 
 
-def format_input_string(input):
+def format_input_string(input: str) -> tuple:
     """
     Returns ticket number, address, city from Trello input string
     """
@@ -143,6 +143,8 @@ while True:
     if event == sg.WIN_CLOSED:
         break
     if event == "twupdate":
+        if VPN.check_status():
+            VPN.disconnect()
         window["twlist"].update(values=t.get_cards_from_list(TRACER_WIRE_REQUESTS))
         window["twlist"].expand(expand_x=True)
     if event == "twlist":
@@ -165,6 +167,8 @@ while True:
         except TypeError:
             pass
     if event == "email_tw":
+        if VPN.check_status():
+            VPN.disconnect()
         Email.write_tracer_wire(
             Email.tolist,
             Email.cclist,
@@ -174,6 +178,8 @@ while True:
             values["pic"],
         )
     if event == "email_prop":
+        if VPN.check_status():
+            VPN.vpn_toggle()
         Email.write_proposed(
             Email.tolist,
             Email.cclist,
@@ -199,6 +205,8 @@ while True:
             values["tofrom"],
         )
     if event == "get_attachments":
+        if VPN.check_status():
+            VPN.vpn_toggle()
         acct = Email.start()
         file_list = Email.get_attachments(acct, values["tn"])
         fnames = [x for x in file_list]
@@ -206,6 +214,8 @@ while True:
     if event == 'attachment_list':
         window['viewer'].update(data=convert_to_bytes(values['attachment_list'][0]))
     if event == "view_records":
-        sg.popup("Ensure VPN is connected and hit OK to continue")
+        if not VPN.check_status():
+            VPN.vpn_toggle()
+        #sg.popup("Ensure VPN is connected and hit OK to continue")
         d = Driver.start()
         Ticket.show_records(d)

@@ -13,7 +13,7 @@ from exchangelib import Message, FileAttachment, ItemAttachment
 from exchangelib.configuration import Configuration
 from exchangelib.transport import NTLM
 import openpyxl
-
+from isvpn import is_vpn
 
 class Driver:
     def start():
@@ -53,6 +53,7 @@ class Email:
             return account
         except AttributeError:
             sg.popup("Couldn't access email account")
+            return None
 
     def write_proposed(tolist, cclist, ticketnumber, fibrenumber, fibrecount, address):
         acct = Email.start()
@@ -127,9 +128,9 @@ Craig Huckson
         )
         try:
             with open(xl, mode='rb') as spreadsheet:
-                xlfile = FileAttachment(name = xl, content = spreadsheet.read())
+                xlfile = FileAttachment(name = os.path.basename(xl), content = spreadsheet.read())
             with open(pic, mode='rb') as img:
-                picture = FileAttachment(name = pic, content = img.read())
+                picture = FileAttachment(name = os.path.basename(pic), content = img.read())
             m.attach(xlfile)
             m.attach(picture)
             m.save()
@@ -140,22 +141,25 @@ Craig Huckson
     def get_attachments(account, ticketnumber):
         # Search for attachments using ticket number entered and save them to \Desktop\Temp
         # returns a file list
-        file_list = []
-        item = account.inbox.filter(subject__contains=ticketnumber)
-        for attachment in item[0].attachments:
-            if isinstance(attachment, FileAttachment):
-                desktoptemp = os.path.join(
-                    "C:\\Users\\Cr\\Desktop\\Temp", attachment.name
-                )
-                with open(desktoptemp, "wb") as f:
-                    f.write(attachment.content)
-                file_list.append(desktoptemp)
-                print("Saved attachment to", desktoptemp)
-                # Shows images
-                #webbrowser.open(desktoptemp)
-            elif isinstance(attachment, ItemAttachment):
-                if isinstance(attachment.item, Message):
-                    print(attachment.item.subject, attachment.item.body)
+        try:
+            file_list = []
+            item = account.inbox.filter(subject__contains=ticketnumber)
+            for attachment in item[0].attachments:
+                if isinstance(attachment, FileAttachment):
+                    temp = os.path.join(
+                        ".\\temp", attachment.name
+                    )
+                    with open(temp, "wb") as f:
+                        f.write(attachment.content)
+                    file_list.append(temp)
+                    print("Saved attachment to", temp)
+                    # Shows images
+                    webbrowser.open(temp)
+                elif isinstance(attachment, ItemAttachment):
+                    if isinstance(attachment.item, Message):
+                        print(attachment.item.subject, attachment.item.body)
+        except IndexError:
+            pass
         return file_list
 
 class Ticket:
@@ -178,7 +182,7 @@ class Ticket:
         return address
 
     def show_records(driver, fibre_name=""):
-        # driver = webdriver.Chrome()
+        driver = webdriver.Chrome()
         # Login to go360
         driver.get("http://10.13.218.247/go360rogersviewer/")
         driver.find_element_by_id("username").send_keys("craig.huckson")
@@ -228,6 +232,8 @@ class Ticket:
 
     def generate_excel(tn,address,fn,fs,tofrom):
         new_filename = sg.popup_get_text('Enter filename') + '.xlsx'
+        if new_filename is None:
+            return
         LSPNAME = 'CCS'
         CONTACTNAME = 'Craig Huckson'
         CONTACTPHONE = '(647)588-0906'
@@ -257,26 +263,37 @@ class VPN:
         else:
             return True
 
+    def vpn_toggle():
+        subprocess.run("C:\\Program Files\\AutoHotkey\\AutoHotkeyU64.exe vpnpy.ahk")
+
+    def check_status():
+        return is_vpn()
+
+
     def connect():
-        cd = "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\"
-        rc = subprocess.run(
-            "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\connect.bat",
-            cwd=cd,
-            capture_output=True,
-            text=True,
-        )
-        
+        if VPN.check_status():
+            pass
+        else:
+
+            cd = "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\"
+            rc = subprocess.run(
+               "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\connect.bat",
+                cwd=cd,
+                capture_output=True,
+                text=True,)
+
         if rc.returncode == 0:
             pyautogui.alert("VPN connected")
         else:
             pyautogui.alert("There was a problem")
-        return True
+
 
     def disconnect():
-        cd = "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\"
-        dcp = subprocess.run(cd + "disconnect.bat", capture_output=True, cwd=cd)
-        if dcp.returncode == 0:
-            pyautogui.alert("VPN disconnected!")
-        else:
-            pyautogui.alert("An error was present")
-        return False
+        if VPN.check_status():
+
+            cd = "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\"
+            dcp = subprocess.run(cd + "disconnect.bat", capture_output=True, cwd=cd)
+            if dcp.returncode == 0:
+                pyautogui.alert("VPN disconnected!")
+            else:
+                pyautogui.alert("An error was present")
