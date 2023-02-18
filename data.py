@@ -1,10 +1,14 @@
 import PySimpleGUI as sg
-sg.theme('black')
+
+sg.theme("black")
 
 from ntpath import join
 import pyautogui
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 import os
 import webbrowser
 import subprocess
@@ -14,12 +18,16 @@ from exchangelib.configuration import Configuration
 from exchangelib.transport import NTLM
 import openpyxl
 from isvpn import is_vpn
+import pprint
+from selenium.webdriver.chrome.options import Options
+chrome_options = Options()
+chrome_options.add_experimental_option("detach", True)
+
 
 class Driver:
     def start():
         try:
-            driver = webdriver.Chrome()
-            return driver
+            return webdriver.Chrome()
         except:
             pyautogui.alert("Unable to create webdriver instance")
             return False
@@ -27,17 +35,17 @@ class Driver:
 
 class Email:
 
-    tolist = ["tabatha.waugh@rci.rogers.com", "naz.khalili@rci.rogers.com"]
+    bftolist = ["emanuel@beanfield.com"]
+    tolist = ["tabatha.waugh@rci.rogers.com", "Hissam.ElSayed@rci.rogers.com"]
     cclist = [
         "dmcgrath@cablecontrol.ca",
         "b.parsons@cablecontrol.ca",
         "kadisha@cablecontrol.ca",
-        "nicole@cablecontrol.ca",
         "tony.knibbe@cablecontrol.ca",
         "ray.whalen@cablecontrol.ca",
     ]
 
-    def start():
+    def start() -> Account:
         # Create account instance to get data
         try:
             credentials = Credentials("craig.huckson@cablecontrol.ca", "Locatesup1")
@@ -55,12 +63,25 @@ class Email:
             sg.popup("Couldn't access email account")
             return None
 
-    def write_proposed(tolist, cclist, ticketnumber, fibrenumber, fibrecount, address):
+    def check_for_ticket(ticket_no) -> None:
+        acct = Email.start()
+        item = acct.inbox.filter(subject__contains=ticket_no)
+        return item
+        '''
+        for _ in item:
+            print(_.subject)
+            print(_.datetime_received)
+            print(_.body)
+            '''
+
+    def write_proposed(
+        tolist, cclist, ticketnumber, fibrenumber, fibrecount, address
+    ) -> None:
         acct = Email.start()
         st = (ticketnumber, address, "proposed fibre not in field")
         substr = " - ".join(st)
         bodystr = f"""
-Tabitha / Naz:
+Hello,
 
 {fibrecount} count {fibrenumber} shows as proposed in Go360 but was not installed in the field at the time of the locate.
 
@@ -84,7 +105,7 @@ Craig Huckson
         st = (ticketnumber, address, "inaccurate records")
         substr = " - ".join(st)
         bodystr = f"""
-Tabitha / Naz:
+Hello,
 
 {report}
 
@@ -103,14 +124,12 @@ Craig Huckson
         m.save()
         sg.popup("Email saved to drafts")
 
-    def write_tracer_wire(
-        tolist, cclist, ticketnumber,address, xl, pic
-    ):
+    def write_tracer_wire(tolist, cclist, ticketnumber, address, xl, pic):
         acct = Email.start()
         st = (ticketnumber, address, "tracer wire needed")
         substr = " - ".join(st)
         bodystr = f"""
-Tabitha / Naz:
+Hello,
 
 Please see the attached
 
@@ -126,17 +145,16 @@ Craig Huckson
             to_recipients=tolist,
             cc_recipients=cclist,
         )
-        try:
-            with open(xl, mode='rb') as spreadsheet:
-                xlfile = FileAttachment(name = os.path.basename(xl), content = spreadsheet.read())
-            with open(pic, mode='rb') as img:
-                picture = FileAttachment(name = os.path.basename(pic), content = img.read())
-            m.attach(xlfile)
-            m.attach(picture)
-            m.save()
-        except FileNotFoundError:
-            sg.popup('Valid spreadsheet or picture not attached')
-        sg.popup('Email saved to drafts')
+        with open(xl, mode="rb") as spreadsheet:
+            xlfile = FileAttachment(
+                name=os.path.basename(xl), content=spreadsheet.read()
+            )
+        with open(pic, mode="rb") as img:
+            picture = FileAttachment(name=os.path.basename(pic), content=img.read())
+        m.attach(xlfile)
+        m.attach(picture)
+        m.save()
+        sg.popup("Email saved to drafts")
 
     def get_attachments(account, ticketnumber):
         # Search for attachments using ticket number entered and save them to \Desktop\Temp
@@ -146,9 +164,7 @@ Craig Huckson
             item = account.inbox.filter(subject__contains=ticketnumber)
             for attachment in item[0].attachments:
                 if isinstance(attachment, FileAttachment):
-                    temp = os.path.join(
-                        ".\\temp", attachment.name
-                    )
+                    temp = os.path.join(".\\temp", attachment.name)
                     with open(temp, "wb") as f:
                         f.write(attachment.content)
                     file_list.append(temp)
@@ -162,10 +178,57 @@ Craig Huckson
             pass
         return file_list
 
+    def write_aptum_tracer_wire(bftolist, cclist, ticketnumber, address, issue):
+        acct = Email.start()
+        subject_line: str = " - ".join([ticketnumber, address, "Tracer Wire Needed"])
+        bodystr: str = f"""
+Hello,
+
+We require a tracer wire for {issue}
+
+Thanks,
+
+Craig Huckson
+"""
+        m: Message = Message(
+            account=acct,
+            folder=acct.drafts,
+            subject=subject_line,
+            body=bodystr,
+            to_recipients=bftolist,
+            cc_recipients=cclist,
+        )
+        m.save()
+        sg.popup("Saved to drafts")
+
+    def write_aptum_asbuilts(bftolist, cclist, ticketnumber, address, description):
+        acct: Account = Email.start()
+        subject_line: str = " - ".join([ticketnumber, address, "As-Builts Needed"])
+        bodystr: str = f"""
+Hello,
+
+We require as-builts for {description}.
+
+Thanks,
+
+Craig Huckson
+"""
+        m: Message = Message(
+            account=acct,
+            folder=acct.drafts,
+            subject=subject_line,
+            body=bodystr,
+            to_recipients=bftolist,
+            cc_recipients=cclist,
+        )
+        m.save()
+        sg.popup("Message saved to drafts")
+
+
 class Ticket:
-    def get_ticket_number():
+    def get_ticket_number() -> str:
         # Get ticket number
-        ticketnumber = pyautogui.prompt("Enter ticket number: ")
+        ticketnumber: str = pyautogui.prompt("Enter ticket number: ")
         return ticketnumber
 
     def get_fibre_name():
@@ -181,9 +244,10 @@ class Ticket:
         address = pyautogui.prompt("Address?")
         return address
 
-    def show_records(driver, fibre_name=""):
-        driver = webdriver.Chrome()
-        # Login to go360
+    def show_records(fibre_name=""):
+        chrome_options = Options()
+        chrome_options.add_experimental_option("detach", True)
+        driver = Driver.start()
         driver.get("http://10.13.218.247/go360rogersviewer/")
         driver.find_element_by_id("username").send_keys("craig.huckson")
         driver.find_element_by_id("password").send_keys("locates1")
@@ -198,28 +262,20 @@ class Ticket:
         driver.find_element_by_id("form_btn").click()
         pyautogui.sleep(0.5)
 
-        """
-        if fibre_name:
-            driver.find_element_by_xpath('//*[@id="tab_featureform"]/div[1]/div[3]/ul/li[2]/a').click()
-            # Search by fibre name
-            pyautogui.sleep(1.5)
-            driver.find_element_by_xpath('//*[@id="assetName"]/option[4]').click()
-            pyautogui.sleep(1.5)
-            driver.find_element_by_id('assetsearchtitlesid1').send_keys('c')
-            pyautogui.sleep(1.5)
-            driver.find_element_by_id('assetsearchtextid1').send_keys(fibre_name)
-            driver.find_element_by_id('assetssearchbutton').click()
+        driver.find_element_by_xpath('//*[@id="tab_featureform"]/div[1]/div[3]/ul/li[2]/a').click()
+        # Search by fibre name
+        #pyautogui.sleep(1.5)
+        ddelement = Select(driver.find_element_by_xpath('//*[@id="assetName"]'))
+        ddelement.select_by_visible_text('Fiber Cables - themed by Risk')
+        element = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,'//*[@id="assetsearchtitlesid1"]')))
+        ddelement2 = Select(driver.find_element_by_xpath('//*[@id="assetsearchtitlesid1"]'))
+        ddelement2.select_by_visible_text('Cable Name')
+        pyautogui.sleep(1.5)
+        driver.find_element_by_id('assetsearchtextid1').send_keys(fibre_name)
+        driver.find_element_by_id('assetssearchbutton').click()
 
-        else:
-            # search by intersection
-            driver.find_element_by_xpath('//*[@id="tab_featureform"]/div[1]/div[3]/ul/li[1]/a/span[1]').click()
-            driver.find_element_by_id('intersectionSearchInput1').send_keys(street)
-            driver.find_element_by_id('intersectionSearchInput2').send_keys(intersection)
-            driver.find_element_by_css_selector('#id_search_div > div:nth-child(1) > table > tbody > tr:nth-child(6) > td:nth-child(4) > a').click()
 
-        """
-
-    def get_screenshot():
+    def get_screenshot() -> str:
         win = pyautogui.getWindowsWithTitle("Go360")[0]
         win.activate()
         im = pyautogui.prompt("Enter image name")
@@ -230,30 +286,35 @@ class Ticket:
         im = im + ".png"
         return im
 
-    def generate_excel(tn,address,fn,fs,tofrom):
-        new_filename = sg.popup_get_text('Enter filename') + '.xlsx'
-        if new_filename is None:
-            return
-        LSPNAME = 'CCS'
-        CONTACTNAME = 'Craig Huckson'
-        CONTACTPHONE = '(647)588-0906'
-        CONTACTEMAIL = 'craig.huckson@cablecontrol.ca'
-        REGION = 'York'
-        GO360_SCREENSHOT = 'Y'
-        wb = openpyxl.load_workbook('Tracer Wire Request Form.xlsx')
-        sheet = wb['Sheet1']
-        sheet['B4'] = tn
-        sheet['B5'] = address.split(', ')[1] + ", " + REGION
-        sheet['B6'] = fn
-        sheet['B7'] = fs
-        sheet['D4'] = LSPNAME
-        sheet['D5'] = CONTACTNAME
-        sheet['D6'] = CONTACTPHONE
-        sheet['D7'] = CONTACTEMAIL
-        sheet['B8'] = tofrom
-        sheet['B9'] = GO360_SCREENSHOT
+    def generate_excel(tn, address, fn, fs, tofrom) -> str:
+        new_filename = tn + " tracer wire.xlsx"
+        LSPNAME = "CCS"
+        CONTACTNAME = "Craig Huckson"
+        CONTACTPHONE = "(647)588-0906"
+        CONTACTEMAIL = "craig.huckson@cablecontrol.ca"
+        REGION = "York"
+        GO360_SCREENSHOT = "Y"
+        wb = openpyxl.load_workbook("Tracer Wire Request Form.xlsx")
+        print(str(wb))
+        sheet = wb["Sheet1"]
+        sheet["B4"] = tn
+        sheet["B5"] = address + ", " + REGION
+        sheet["B6"] = fn
+        sheet["B7"] = fs
+        sheet["D4"] = LSPNAME
+        sheet["D5"] = CONTACTNAME
+        sheet["D6"] = CONTACTPHONE
+        sheet["D7"] = CONTACTEMAIL
+        sheet["B8"] = tofrom
+        sheet["B9"] = GO360_SCREENSHOT
         wb.save(new_filename)
-        sg.popup(f'Excel file saved as {new_filename}')
+        print(f"Excel file saved as {new_filename}")
+        return new_filename
+
+    def extract_fibre_name(xlfile) -> str:
+        f = openpyxl.load_workbook(xlfile)
+        sheet = f["Sheet1"]
+        return sheet["B6"].value
 
 
 class VPN:
@@ -269,31 +330,15 @@ class VPN:
     def check_status():
         return is_vpn()
 
-
     def connect():
         if VPN.check_status():
             pass
         else:
-
-            cd = "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\"
-            rc = subprocess.run(
-               "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\connect.bat",
-                cwd=cd,
-                capture_output=True,
-                text=True,)
-
-        if rc.returncode == 0:
-            pyautogui.alert("VPN connected")
-        else:
-            pyautogui.alert("There was a problem")
-
+            VPN.vpn_toggle()
 
     def disconnect():
         if VPN.check_status():
+            VPN.vpn_toggle()
 
-            cd = "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect Secure Mobility Client\\"
-            dcp = subprocess.run(cd + "disconnect.bat", capture_output=True, cwd=cd)
-            if dcp.returncode == 0:
-                pyautogui.alert("VPN disconnected!")
-            else:
-                pyautogui.alert("An error was present")
+if __name__ == "__main__":
+    Ticket.show_records("10151953")

@@ -24,3 +24,5 @@ riverwalk.json
 .\.vscode
 .\pytest_cache
 .\__pycache__
+.\data
+.\temp
