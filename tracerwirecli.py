@@ -23,76 +23,41 @@ def alternate_data_input() -> tuple:
 
 
 def get_trello_list() -> list:
+    # get list of tickets from trello
     t = Trello()
     return t.get_cards_from_list(TRACER_WIRE_REQUESTS)
 
 
 def format_trello_ticket(tdata: str) -> tuple:
-    # checks which format trello data was put in as
-    import string
-    newin = ""
-    index = 0
-    for char in tdata:
-        if char in string.ascii_uppercase:
-            newin += char
-        elif char in string.digits:
-            newin += char
-        else:
-            newin += f"*{index}*"
-        index += 1
+    # formats the ticket data string received from trello and returns a tuple (ticket number, address, city)
+    #parse the ticket number, first character to last digit of first word. use regex
+    import re
+    ticket_number = re.search(r'\d+', tdata).group()
 
-    print(newin)
+    #parse the address, either first character after first "-" to last character before next "-" or start of first word after "FOR" to last character before next "-"
+    address = tdata[tdata.find("-")+1:tdata.rfind("-")].strip()
+    if address == "":
+        address = tdata[tdata.find("FOR")+3:tdata.rfind("-")].strip()
 
-    try:
-        tnub = int(input('Upper boundary for ticket?'))
-        addlb = int(input('Lower boundary for address?'))
-        addub = int(input('Upper boundary for address?'))
+    #parse the city, first character after last "-" to end of string
+    city = tdata[tdata.rfind("-")+1:]
 
-    except ValueError:
-        return alternate_data_input()
-
-    ticket_number = tdata[0:tnub].strip()
-    address = tdata[addlb:addub].strip()
-    city = tdata[addub+1:].strip()
-
-    print(f'{ticket_number} {address} {city}')
     return ticket_number, address, city
-    """
-    if "," not in input:
-        try:
-            fields = input.split("-")
-            city = fields[3].strip().capitalize().title()
-            ticket_number = fields[0]
-            road = fields[1].title()
-            address = f"{road}, {city}"
-            return ticket_number, address, city
-        except IndexError:
-            return alternate_data_input()
-
-    else:
-        try:
-            modinput = input.replace("-", ",")
-            fields = modinput.split(",")
-            ticket_number = fields[0]
-            city = fields[2].title().strip()
-            address = fields[1].title().strip() + ", " + city
-            return ticket_number, address, city
-
-            # if there is an error here input is made manually
-
-        except IndexError:
-            return alternate_data_input()
-        """
 
 def main():
 
         # make sure vpn not on
         VPN.disconnect()
-        trello_list = get_trello_list()
+
+        #trello_list will equal all entries in get_trello_list() that dont contain "TORONTO"
+        trello_list = [x for x in get_trello_list() if "TORONTO" not in x]
+
         account = Email.start()
         ticket:str = pyip.inputMenu(trello_list, prompt="Select a ticket:\n", numbered=True)
 
         ticket_number, address, city = format_trello_ticket(ticket)
+        address = address + ',' + city
+        print(f'{ticket_number} {address}')
 
         viewing_attachments = pyip.inputYesNo(prompt="View ticket pictures?")
 
@@ -150,7 +115,9 @@ def aptmain():
 
     # make sure vpn not on
     VPN.disconnect()
-    trello_list = get_trello_list()
+    #trello_list will equal all entries in get_trello_list() that do contain "TORONTO"
+    trello_list = [x for x in get_trello_list() if "TORONTO" in x]
+
     account = Email.start()
     ticket:str = pyip.inputMenu(trello_list, prompt="Select a ticket:\n", numbered=True)
 
