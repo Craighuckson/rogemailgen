@@ -9,6 +9,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
 import os
 import webbrowser
 import subprocess
@@ -27,7 +28,7 @@ chrome_options.add_experimental_option("detach", True)
 class Driver:
     def start():
         try:
-            return webdriver.Chrome()
+            return webdriver.Chrome(options=chrome_options)
         except:
             pyautogui.alert("Unable to create webdriver instance")
             return False
@@ -245,37 +246,35 @@ class Ticket:
         return address
 
     def show_records(fibre_name=""):
+
+        """Opens a browser and shows the records for the fibre name"""
+
         chrome_options = Options()
         chrome_options.add_experimental_option("detach", True)
         driver = Driver.start()
+        #maximize window
+        driver.maximize_window()
         driver.get("http://10.13.218.247/go360rogersviewer/")
-        driver.find_element_by_id("username").send_keys("craig.huckson")
-        driver.find_element_by_id("password").send_keys("locates1")
-        driver.find_element_by_xpath(
-            "/html/body/div/form/div[3]/div[2]/div/button"
-        ).click()
+        driver.find_element(By.ID, "username").send_keys('craig.huckson')
+        driver.find_element(By.ID, 'password').send_keys('locates1')
+        driver.find_element(By.ID, "copyRightID").click()
+        driver.find_element(By.CSS_SELECTOR, ".btn").click()
+        driver.find_element(By.ID, "form_btn").click()
+        driver.find_element(By.CSS_SELECTOR, ".tabs-selected .tabs-title").click()
+        driver.find_element(By.ID, "assetName").click()
+        driver.find_element(By.ID, "assetsearchtitlesid1").click()
+        dropdown = driver.find_element(By.ID, "assetsearchtitlesid1")
+        dropdown.find_element(By.XPATH, "//option[. = 'Cable Name']").click()
+        driver.find_element(By.ID, "assetsearchtextid1").click()
+        driver.find_element(By.ID, "assetsearchtextid1").send_keys("10500589")
+        driver.find_element(By.ID, "assetsearchtextid1").send_keys(Keys.ENTER)
+        driver.find_element(By.CSS_SELECTOR, "#assetSearchResultRow_1 > td:nth-child(1)").click()
+        driver.find_element(By.ID, "form_selection_zoom_btn").click()
 
-        # Need a rest here sometimes or it wont work
-        pyautogui.sleep(1)
-        # clears previous use
-        driver.find_element_by_id("form_marqueezoom_btn").click()
-        driver.find_element_by_id("form_btn").click()
-        pyautogui.sleep(0.5)
-
-        driver.find_element_by_xpath('//*[@id="tab_featureform"]/div[1]/div[3]/ul/li[2]/a').click()
-        # Search by fibre name
-        #pyautogui.sleep(1.5)
-        ddelement = Select(driver.find_element_by_xpath('//*[@id="assetName"]'))
-        ddelement.select_by_visible_text('Fiber Cables - themed by Risk')
-        element = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,'//*[@id="assetsearchtitlesid1"]')))
-        ddelement2 = Select(driver.find_element_by_xpath('//*[@id="assetsearchtitlesid1"]'))
-        ddelement2.select_by_visible_text('Cable Name')
-        pyautogui.sleep(1.5)
-        driver.find_element_by_id('assetsearchtextid1').send_keys(fibre_name)
-        driver.find_element_by_id('assetssearchbutton').click()
 
 
     def get_screenshot() -> str:
+        """Gets screenshot of Go360 and saves to user selected name"""
         win = pyautogui.getWindowsWithTitle("Go360")[0]
         win.activate()
         im = pyautogui.prompt("Enter image name")
@@ -287,6 +286,7 @@ class Ticket:
         return im
 
     def generate_excel(tn, address, fn, fs, tofrom) -> str:
+        """Generates excel file for tracer wire request"""
         new_filename = tn + " tracer wire.xlsx"
         LSPNAME = "CCS"
         CONTACTNAME = "Craig Huckson"
@@ -312,31 +312,40 @@ class Ticket:
         return new_filename
 
     def extract_fibre_name(xlfile) -> str:
+        """Extracts fibre name from excel file which is found in cell B6"""
         f = openpyxl.load_workbook(xlfile)
         sheet = f["Sheet1"]
         return sheet["B6"].value
 
 
 class VPN:
-    def status(vpn=""):
+    def status(vpn: bool) -> bool:
+        """Checks if VPN is connected"""
+        # If no VPN is specified, return False
         if not vpn:
             return False
+        # Otherwise, return True
         else:
             return True
 
     def vpn_toggle():
+        """ Toggles VPN connection"""
         subprocess.run("C:\\Program Files\\AutoHotkey\\AutoHotkeyU64.exe vpnpy.ahk")
 
+
     def check_status():
+        """Checks if VPN is connected"""
         return is_vpn()
 
     def connect():
+        """Connects to VPN if not connected"""
         if VPN.check_status():
             pass
         else:
             VPN.vpn_toggle()
 
     def disconnect():
+        """Disconnects from VPN if connected"""
         if VPN.check_status():
             VPN.vpn_toggle()
 

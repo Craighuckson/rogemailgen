@@ -6,6 +6,7 @@ VPNPATH = (
 
 
 def is_vpn():
+    """Check if VPN is connected"""
     vpn_out = subprocess.run(
             VPNPATH,
             capture_output=True, text=True)
