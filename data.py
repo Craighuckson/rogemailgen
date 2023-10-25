@@ -38,7 +38,7 @@ class Email:
 
     bftolist = ["emanuel@beanfield.com"]
     tolist = ["tabatha.waugh@rci.rogers.com", "Hissam.ElSayed@rci.rogers.com"]
-    tmx_tolist = ["ksathyamoorthy@telmax.com", "cc@telmax.com"]
+    tmx_tolist = ["cc@telmax.com"]
     cclist = [
         "dmcgrath@cablecontrol.ca",
         "b.parsons@cablecontrol.ca",
