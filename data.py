@@ -38,6 +38,7 @@ class Email:
 
     bftolist = ["emanuel@beanfield.com"]
     tolist = ["tabatha.waugh@rci.rogers.com", "Hissam.ElSayed@rci.rogers.com"]
+    tmx_tolist = ["ksathyamoorthy@telmax.com", "cc@telmax.com"]
     cclist = [
         "dmcgrath@cablecontrol.ca",
         "b.parsons@cablecontrol.ca",
@@ -45,13 +46,15 @@ class Email:
         "tony.knibbe@cablecontrol.ca",
         "ray.whalen@cablecontrol.ca",
     ]
+    tmx_cclist = ["wdonovan@telmax.com", "jhildebrand@telmax.com", "dmcgrath@cablecontrol.ca", "b.parsons@cablecontrol.ca", "kadisha@cablecontrol.ca"]
+
 
     def start() -> Account:
         # Create account instance to get data
         try:
             credentials = Credentials("craig.huckson@cablecontrol.ca", "Locatesup1")
             config = Configuration(
-                server="webapp.cablecontrol.ca", auth_type=NTLM, credentials=credentials
+                server="webapp.cablecontrol.ca", credentials=credentials
             )
             account = Account(
                 primary_smtp_address="craig.huckson@cablecontrol.ca",
@@ -155,7 +158,29 @@ Craig Huckson
         m.attach(xlfile)
         m.attach(picture)
         m.save()
-        sg.popup("Email saved to drafts")
+        print("Email saved to drafts")
+
+    def write_telmax_tracer_wire(ticket,message):
+        acct = Email.start()
+        st = (ticket, "tracer wire needed")
+        substr = " - ".join(st)
+        bodystr = f"""
+{message}
+
+Thanks,
+Craig Huckson
+"""
+        m = Message(
+            account=acct,
+            folder=acct.drafts,
+            subject=substr,
+            body=bodystr,
+            to_recipients=Email.tmx_tolist,
+            cc_recipients=Email.tmx_cclist,
+        )
+        m.save()
+        print("Email saved to drafts")
+
 
     def get_attachments(account, ticketnumber):
         # Search for attachments using ticket number entered and save them to \Desktop\Temp
@@ -350,4 +375,5 @@ class VPN:
             VPN.vpn_toggle()
 
 if __name__ == "__main__":
-    Ticket.show_records("10151953")
+    acct = Email.start()
+    print(acct)

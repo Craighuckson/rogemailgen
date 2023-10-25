@@ -3,7 +3,7 @@ import os
 import pyinputplus as pyip
 
 from data import Email, Ticket, VPN
-from trello import Trello, TRACER_WIRE_REQUESTS
+from trello import Trello, TRACER_WIRE_REQUESTS, TRACER_REQUESTS
 
 """
 
@@ -26,6 +26,14 @@ def get_trello_list() -> list:
     # get list of tickets from trello
     t = Trello()
     return t.get_cards_from_list(TRACER_WIRE_REQUESTS)
+
+def get_telmax_list() -> list:
+    t = Trello()
+    return t.get_cards_from_list(TRACER_REQUESTS)
+
+def get_comment(card_name, listid):
+    t = Trello()
+    return t.get_card_notifications(card_name,listid)
 
 
 def format_trello_ticket(tdata: str) -> tuple:
@@ -50,7 +58,7 @@ def main():
         VPN.disconnect()
 
         #trello_list will equal all entries in get_trello_list() that dont contain "TORONTO"
-        trello_list = [x for x in get_trello_list() if "TORONTO" not in x]
+        trello_list =list(set([x for x in get_trello_list() if "TORONTO" not in x]))
 
         account = Email.start()
         ticket:str = pyip.inputMenu(trello_list, prompt="Select a ticket:\n", numbered=True)
@@ -108,6 +116,16 @@ def main():
             Email.write_tracer_wire(Email.tolist,Email.cclist
             ,ticket_number,address,xl,pic)
 
+
+def tmax_tracer():
+    trello_list = get_telmax_list()
+    account = Email.start()
+    ticket:str = pyip.inputMenu(trello_list, prompt="Select a ticket:\n", numbered=True)
+    print(ticket)
+    print(get_comment(ticket,TRACER_REQUESTS))
+    message = pyip.inputStr("Enter message: ")
+    Email.write_telmax_tracer_wire(ticket, message)
+
 def aptmain():
     """
     Main routine for Aptum email
@@ -139,8 +157,10 @@ def aptmain():
 
 
 if __name__ == '__main__':
-    choice:str = pyip.inputChoice(['rogers', 'aptum'])
+    choice:str = pyip.inputChoice(['rogers', 'aptum', 'telmax'])
     if choice == 'rogers':
         main()
+    elif choice == 'telmax':
+        tmax_tracer()
     else:
         aptmain()

@@ -26,3 +26,5 @@ riverwalk.json
 .\__pycache__
 .\data
 .\temp
+*tracer wire 2.xlsx
+*.jpg
