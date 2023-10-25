@@ -115,6 +115,8 @@ Craig Huckson
         st = (ticket, "tracer wire needed")
         substr = " - ".join(st)
         bodystr = f"""
+Hello,
+
 {message}
 
 Thanks,
