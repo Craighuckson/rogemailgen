@@ -78,27 +78,8 @@ class Email:
             print(_.body)
             '''
 
-    def write_tracer_wire(tolist, cclist, ticketnumber, address, xl, pic):
-        acct = Email.start()
-        st = (ticketnumber, address, "tracer wire needed")
-        substr = " - ".join(st)
-        bodystr = f"""
-Hello,
 
-Please see the attached
-
-Thanks,
-
-Craig Huckson
-                """
-        m = Message(
-            account=acct,
-            folder=acct.drafts,
-            subject=substr,
-            body=bodystr,
-            to_recipients=tolist,
-            cc_recipients=cclist,
-        )
+    def attach_files_to_email(m, xl, pic):
         with open(xl, mode="rb") as spreadsheet:
             xlfile = FileAttachment(
                 name=os.path.basename(xl), content=spreadsheet.read()
@@ -107,6 +88,29 @@ Craig Huckson
             picture = FileAttachment(name=os.path.basename(pic), content=img.read())
         m.attach(xlfile)
         m.attach(picture)
+
+    def write_tracer_wire(tolist, cclist, ticketnumber, address, xl, pic):
+        acct = Email.start()
+        st = (ticketnumber, address, "tracer wire needed")
+        substr = " - ".join(st)
+        bodystr = f"""
+    Hello,
+
+    Please see the attached
+
+    Thanks,
+
+    Craig Huckson
+    """
+        m = Message(
+            account=acct,
+            folder=acct.drafts,
+            subject=substr,
+            body=bodystr,
+            to_recipients=tolist,
+            cc_recipients=cclist,
+        )
+        attach_files_to_email(m, xl, pic)
         m.save()
         print("Email saved to drafts")
 
