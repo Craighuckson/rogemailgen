@@ -78,56 +78,6 @@ class Email:
             print(_.body)
             '''
 
-    def write_proposed(
-        tolist, cclist, ticketnumber, fibrenumber, fibrecount, address
-    ) -> None:
-        acct = Email.start()
-        st = (ticketnumber, address, "proposed fibre not in field")
-        substr = " - ".join(st)
-        bodystr = f"""
-Hello,
-
-{fibrecount} count {fibrenumber} shows as proposed in Go360 but was not installed in the field at the time of the locate.
-
-Thanks,
-
-Craig Huckson
-                """
-        m = Message(
-            account=acct,
-            folder=acct.drafts,
-            subject=substr,
-            body=bodystr,
-            to_recipients=tolist,
-            cc_recipients=cclist,
-        )
-        m.save()
-        sg.popup("Email saved to drafts")
-
-    def write_inaccurate(tolist, cclist, ticketnumber, address, report):
-        acct = Email.start()
-        st = (ticketnumber, address, "inaccurate records")
-        substr = " - ".join(st)
-        bodystr = f"""
-Hello,
-
-{report}
-
-Thanks,
-
-Craig Huckson
-                """
-        m = Message(
-            account=acct,
-            folder=acct.drafts,
-            subject=substr,
-            body=bodystr,
-            to_recipients=tolist,
-            cc_recipients=cclist,
-        )
-        m.save()
-        sg.popup("Email saved to drafts")
-
     def write_tracer_wire(tolist, cclist, ticketnumber, address, xl, pic):
         acct = Email.start()
         st = (ticketnumber, address, "tracer wire needed")
