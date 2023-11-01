@@ -1,3 +1,4 @@
+from typing import Any
 import PySimpleGUI as sg
 
 sg.theme("black")
@@ -5,12 +6,14 @@ sg.theme("black")
 from ntpath import join
 import pyautogui
 from selenium import webdriver
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.select import Select
+from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 import os
+import pymsgbox
+from pathlib import Path
 import webbrowser
 import subprocess
 from exchangelib import DELEGATE, Account, Credentials
@@ -26,12 +29,12 @@ chrome_options.add_experimental_option("detach", True)
 
 
 class Driver:
+    @staticmethod
     def start():
         try:
             return webdriver.Chrome(options=chrome_options)
-        except:
-            pyautogui.alert("Unable to create webdriver instance")
-            return False
+        except Exception as e:
+            raise Exception("Couldn't start webdriver")
 
 
 class Email:
@@ -48,8 +51,8 @@ class Email:
     ]
     tmx_cclist = ["wdonovan@telmax.com", "jhildebrand@telmax.com", "dmcgrath@cablecontrol.ca", "b.parsons@cablecontrol.ca", "kadisha@cablecontrol.ca"]
 
-
-    def start() -> Account:
+    @staticmethod
+    def start():
         # Create account instance to get data
         try:
             credentials = Credentials("craig.huckson@cablecontrol.ca", "Locatesup1")
@@ -63,22 +66,16 @@ class Email:
                 access_type=DELEGATE,
             )
             return account
-        except AttributeError:
-            sg.popup("Couldn't access email account")
-            return None
+        except Exception as e:
+            raise Exception("Couldn't access email account")
 
-    def check_for_ticket(ticket_no) -> None:
-        acct = Email.start()
-        item = acct.inbox.filter(subject__contains=ticket_no)
+    @staticmethod
+    def check_for_ticket(ticket_no):
+        acct:Account = Email.start()
+        item = acct.inbox.filter(subject__contains=ticket_no) # type: ignore
         return item
-        '''
-        for _ in item:
-            print(_.subject)
-            print(_.datetime_received)
-            print(_.body)
-            '''
 
-
+    @staticmethod
     def attach_files_to_email(m, xl, pic):
         with open(xl, mode="rb") as spreadsheet:
             xlfile = FileAttachment(
@@ -89,19 +86,20 @@ class Email:
         m.attach(xlfile)
         m.attach(picture)
 
+    @staticmethod
     def write_tracer_wire(tolist, cclist, ticketnumber, address, xl, pic):
         acct = Email.start()
         st = (ticketnumber, address, "tracer wire needed")
         substr = " - ".join(st)
         bodystr = f"""
-    Hello,
+Hello,
 
-    Please see the attached
+Please see the attached
 
-    Thanks,
+Thanks,
 
-    Craig Huckson
-    """
+Craig Huckson
+"""
         m = Message(
             account=acct,
             folder=acct.drafts,
@@ -110,11 +108,12 @@ class Email:
             to_recipients=tolist,
             cc_recipients=cclist,
         )
-        attach_files_to_email(m, xl, pic)
+        Email.attach_files_to_email(m, xl, pic)
         m.save()
         print("Email saved to drafts")
 
-    def write_telmax_tracer_wire(ticket,message):
+    @staticmethod
+    def write_telmax_tracer_wire(ticket:str,message:str):
         acct = Email.start()
         st = (ticket, "tracer wire needed")
         substr = " - ".join(st)
@@ -137,29 +136,7 @@ Craig Huckson
         m.save()
         print("Email saved to drafts")
 
-
-    def get_attachments(account, ticketnumber):
-        # Search for attachments using ticket number entered and save them to \Desktop\Temp
-        # returns a file list
-        try:
-            file_list = []
-            item = account.inbox.filter(subject__contains=ticketnumber)
-            for attachment in item[0].attachments:
-                if isinstance(attachment, FileAttachment):
-                    temp = os.path.join(".\\temp", attachment.name)
-                    with open(temp, "wb") as f:
-                        f.write(attachment.content)
-                    file_list.append(temp)
-                    print("Saved attachment to", temp)
-                    # Shows images
-                    webbrowser.open(temp)
-                elif isinstance(attachment, ItemAttachment):
-                    if isinstance(attachment.item, Message):
-                        print(attachment.item.subject, attachment.item.body)
-        except IndexError:
-            pass
-        return file_list
-
+    @staticmethod
     def write_aptum_tracer_wire(bftolist, cclist, ticketnumber, address, issue):
         acct = Email.start()
         subject_line: str = " - ".join([ticketnumber, address, "Tracer Wire Needed"])
@@ -183,6 +160,7 @@ Craig Huckson
         m.save()
         sg.popup("Saved to drafts")
 
+    @staticmethod
     def write_aptum_asbuilts(bftolist, cclist, ticketnumber, address, description):
         acct: Account = Email.start()
         subject_line: str = " - ".join([ticketnumber, address, "As-Builts Needed"])
@@ -206,26 +184,53 @@ Craig Huckson
         m.save()
         sg.popup("Message saved to drafts")
 
+    @staticmethod
+    def get_attachments(account, ticketnumber):
+        # Search for attachments using ticket number entered and save them to \Desktop\Temp
+        # returns a file list
+        try:
+            file_list:list[Any] = []
+            item = account.inbox.filter(subject__contains=ticketnumber)
+            for attachment in item[0].attachments:
+                if isinstance(attachment, FileAttachment):
+                    temp = Path("./temp") / str(attachment.name)
+                    with open(temp, "wb") as f:
+                        f.write(attachment.content) # type: ignore
+                    file_list.append(temp)
+                    print("Saved attachment to", temp)
+                    # Shows images
+                    webbrowser.open(str(temp))
+                elif isinstance(attachment, ItemAttachment):
+                    if isinstance(attachment.item, Message):
+                        print(attachment.item.subject, attachment.item.body)
+        except IndexError:
+            pass
+
 
 class Ticket:
+    @staticmethod
     def get_ticket_number() -> str:
         # Get ticket number
-        ticketnumber: str = pyautogui.prompt("Enter ticket number: ")
+        ticketnumber: str = pyautogui.prompt("Enter ticket number: ") # type: ignore
         return ticketnumber
 
+    @staticmethod
     def get_fibre_name():
         # Gets fibre name
-        fibre_name = pyautogui.prompt("Enter fibre name: ")
+        fibre_name = pyautogui.prompt("Enter fibre name: ") # type: ignore
         return fibre_name
 
+    @staticmethod
     def get_fibre_count():
-        fibre_count = pyautogui.prompt("Fibre count?")
+        fibre_count = pyautogui.prompt("Fibre count?") # type: ignore
         return fibre_count
 
+    @staticmethod
     def get_address():
-        address = pyautogui.prompt("Address?")
+        address = pyautogui.prompt("Address?") # type: ignore
         return address
 
+    @staticmethod
     def show_records(fibre_name=""):
 
         """Opens a browser and shows the records for the fibre name"""
@@ -254,18 +259,20 @@ class Ticket:
 
 
 
+    @staticmethod
     def get_screenshot() -> str:
         """Gets screenshot of Go360 and saves to user selected name"""
-        win = pyautogui.getWindowsWithTitle("Go360")[0]
+        win = pyautogui.getWindowsWithTitle("Go360")[0] # type: ignore
         win.activate()
-        im = pyautogui.prompt("Enter image name")
+        im = pyautogui.prompt("Enter image name") # type: ignore
         pyautogui.sleep(2)
         pyautogui.screenshot(im + ".png", region=(15, 50, 1338, 665))
-        pyautogui.alert("Screenshot saved")
+        pyautogui.alert("Screenshot saved") # type: ignore
         pyautogui.sleep(1)
         im = im + ".png"
         return im
 
+    @staticmethod
     def generate_excel(tn, address, fn, fs, tofrom) -> str:
         """Generates excel file for tracer wire request"""
         new_filename = tn + " tracer wire.xlsx"
@@ -292,7 +299,8 @@ class Ticket:
         print(f"Excel file saved as {new_filename}")
         return new_filename
 
-    def extract_fibre_name(xlfile) -> str:
+    @staticmethod
+    def extract_fibre_name(xlfile:str) -> str:
         """Extracts fibre name from excel file which is found in cell B6"""
         f = openpyxl.load_workbook(xlfile)
         sheet = f["Sheet1"]
@@ -300,6 +308,7 @@ class Ticket:
 
 
 class VPN:
+    @staticmethod
     def status(vpn: bool) -> bool:
         """Checks if VPN is connected"""
         # If no VPN is specified, return False
@@ -309,15 +318,17 @@ class VPN:
         else:
             return True
 
+    @staticmethod
     def vpn_toggle():
         """ Toggles VPN connection"""
         subprocess.run("C:\\Program Files\\AutoHotkey\\AutoHotkeyU64.exe vpnpy.ahk")
 
-
+    @staticmethod
     def check_status():
         """Checks if VPN is connected"""
         return is_vpn()
 
+    @staticmethod
     def connect():
         """Connects to VPN if not connected"""
         if VPN.check_status():
@@ -325,6 +336,7 @@ class VPN:
         else:
             VPN.vpn_toggle()
 
+    @staticmethod
     def disconnect():
         """Disconnects from VPN if connected"""
         if VPN.check_status():

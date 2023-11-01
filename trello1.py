@@ -47,8 +47,8 @@ class Trello:
         items = json.loads(response.text)
         return items
 
-    def get_telmax_lists(self,board):
-        url = f"https://api.trello.com/1/boards/{board}/lists"
+    def get_telmax_lists(self,boardid):
+        url = f"https://api.trello.com/1/boards/{boardid}/lists"
         headers = {"Accept":  "application/json"}
         params = {'key':  self.key, 'token':  self.token, 'fields': 'name'}
         response = requests.request("GET", url, headers=headers, params=params)
