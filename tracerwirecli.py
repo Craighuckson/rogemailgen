@@ -49,17 +49,21 @@ def format_trello_ticket(tdata: str) -> tuple:
 
     # parse the address, either first character after first "-" to last character before next "-" or start of first word after "FOR" to last character before next "-"
     address = tdata[tdata.find("-") + 1 : tdata.rfind("-")].strip()
+    """
     if 'FOR' in address:
         address = tdata[tdata.find("FOR") + 3 : tdata.rfind("-")].strip()
-    if address == "":
+    elif address == "":
         address = tdata[tdata.find("FOR") + 3 : tdata.rfind("-")].strip()
+    """
 
     # parse the city, first character after last "-" to end of string
     city = tdata[tdata.rfind("-") + 1 :]
 
     # if city is "WHITCHURCH", change to "WHITCHURCH-STOUFFVILLE"
+    """
     if city == "WHITCHURCH":
         city = "WHITCHURCH-STOUFFVILLE"
+        """
 
     return ticket_number, address, city
 
@@ -148,7 +152,7 @@ def tmax_tracer():
     )
     print(ticket)
     print(get_comment(ticket, TRACER_REQUESTS))
-    message = pyip.inputStr("Enter message: ")
+    message = pyip.inputStr("Enter locator message: ")
     Email.write_telmax_tracer_wire(ticket, message)
 
 

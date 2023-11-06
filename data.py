@@ -120,6 +120,8 @@ Craig Huckson
         bodystr = f"""
 Hello,
 
+We are unable to locate this section. Here are the comments from the locator:
+
 {message}
 
 Thanks,
