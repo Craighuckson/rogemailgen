@@ -1,4 +1,3 @@
-from re import A
 import sys
 import os
 import pyinputplus as pyip
@@ -13,6 +12,13 @@ TRACER WIRE PROCESS
 -obtain list from trello
 
 """
+if len(sys.argv) > 1:
+    if sys.argv[1] == 'drafts':
+        Email.show_drafts(Email.start())
+        sys.exit()
+    else:
+        print("USAGE: python tracerwirecli.py [drafts]")
+        sys.exit()
 
 
 def alternate_data_input() -> tuple:
@@ -35,35 +41,38 @@ def get_telmax_list() -> list:
 
 
 def get_comment(card_name, listid):
-    t = Trello()
+    t: Trello = Trello()
     return t.get_card_notifications(card_name, listid)
 
 
-def format_trello_ticket(tdata: str) -> tuple:
-    # formats the ticket data string received from trello and returns a tuple (ticket number, address, city)
-    # parse the ticket number, first character to last digit of first word. use regex
-    import re
+def format_trello_ticket(s):
+    unwanted_words: list[str] = [
+        "Cogeco",
+        "ENVI",
+        "Aptum",
+        "APTUM",
+        "Rogers",
+        "ROGERS",
+        "Envi",
+        "Beanfield",
+        "BEANFIELD",
+    ]
+    for bad in unwanted_words:
+        if bad in s:
+            s = s.replace(bad, "")
+    s = s.replace(",", " ").replace("-", " ").strip()
+    print(s)
+    words = s.split(" ")
+    words = [word.strip() for word in words]
+    print(words)
+    ticket_number = words.pop(0).upper()
+    print(words)
+    city = words.pop(-1).upper()
 
-    match = re.search(r"\d+", tdata)
-    ticket_number = match.group() if match else match
-
-    # parse the address, either first character after first "-" to last character before next "-" or start of first word after "FOR" to last character before next "-"
-    address = tdata[tdata.find("-") + 1 : tdata.rfind("-")].strip()
-    """
-    if 'FOR' in address:
-        address = tdata[tdata.find("FOR") + 3 : tdata.rfind("-")].strip()
-    elif address == "":
-        address = tdata[tdata.find("FOR") + 3 : tdata.rfind("-")].strip()
-    """
-
-    # parse the city, first character after last "-" to end of string
-    city = tdata[tdata.rfind("-") + 1 :]
-
-    # if city is "WHITCHURCH", change to "WHITCHURCH-STOUFFVILLE"
-    """
-    if city == "WHITCHURCH":
+    if city == "STOUFFVILLE" or city == "WHITCHURCH":
         city = "WHITCHURCH-STOUFFVILLE"
-        """
+    print(words)
+    address = " ".join([word.upper() for word in words if word != "FOR"]).strip()
 
     return ticket_number, address, city
 
@@ -72,8 +81,11 @@ def main():
     # make sure vpn not on
     VPN.disconnect()
 
-    # trello_list will equal all entries in get_trello_list() that dont contain "TORONTO"
-    trello_list = list(set([x for x in get_trello_list() if "TORONTO" not in x]))
+    # trello_list will equal all entries in get_trello_list()
+    # that dont contain "TORONTO"
+    trello_list: list[str] = list(
+        set([x for x in get_trello_list() if "TORONTO" not in x])
+    )
 
     try:
         account = Email.start()
@@ -99,7 +111,7 @@ def main():
     fibre_size: str = pyip.inputStr("Fibre size:")
     to_from: str = pyip.inputStr("Tracer wire needed to/from:")
 
-    if os.path.exists(f"{fibre_name} tracer wire.png") == False:
+    if os.path.exists(f"{fibre_name} tracer wire.png") is False:
         input("Do 360 lookup to get screenshot. Press any key when done...")
 
     keep_going: str = pyip.inputYesNo("Is tracer wire still needed?")
@@ -109,7 +121,7 @@ def main():
 
     # make excel if it doesn't exist
     xl: str = f"{ticket_number} tracer wire.xlsx"
-    if os.path.exists(xl) == False:
+    if os.path.exists(xl) is False:
         xl = Ticket.generate_excel(
             ticket_number, address, fibre_name, fibre_size, to_from
         )
@@ -130,7 +142,10 @@ def main():
         print(fibre_name)
     except FileNotFoundError:
         input(
-            "Screenshot not found or saved with wrong filename. Ensure to save file as [fibrename] tracer wire.png. Ensure file present and press any key to continue..."
+            __prompt="""
+            Screenshot not found or saved with wrong filename.
+            Ensure to save file as [fibrename] tracer wire.png.
+            Ensure file present and press any key to continue..."""
         )
 
     if not os.path.exists(f"{fibre_name} tracer wire.png"):
@@ -146,13 +161,15 @@ def main():
 
 def tmax_tracer():
     trello_list = get_telmax_list()
-    account = Email.start()
     ticket: str = pyip.inputMenu(
         trello_list, prompt="Select a ticket:\n", numbered=True
     )
     print(ticket)
-    print(get_comment(ticket, TRACER_REQUESTS))
-    message = pyip.inputStr("Enter locator message: ")
+    comment = get_comment(ticket, TRACER_REQUESTS)
+    print(comment)
+
+    # gets the locator message from list of tuples, remove backslash before @
+    message = comment[0][1].replace(r"\@", "@")
     Email.write_telmax_tracer_wire(ticket, message)
 
 

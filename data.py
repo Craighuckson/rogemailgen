@@ -12,6 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 import os
+import sys
 import pymsgbox
 from pathlib import Path
 import webbrowser
@@ -26,6 +27,8 @@ import pprint
 from selenium.webdriver.chrome.options import Options
 chrome_options = Options()
 chrome_options.add_experimental_option("detach", True)
+
+
 
 
 class Driver:
@@ -71,8 +74,8 @@ class Email:
 
     @staticmethod
     def check_for_ticket(ticket_no):
-        acct:Account = Email.start()
-        item = acct.inbox.filter(subject__contains=ticket_no) # type: ignore
+        acct: Account = Email.start()
+        item = acct.inbox.filter(subject__contains=ticket_no)  # type: ignore
         return item
 
     @staticmethod
@@ -85,6 +88,27 @@ class Email:
             picture = FileAttachment(name=os.path.basename(pic), content=img.read())
         m.attach(xlfile)
         m.attach(picture)
+
+    def show_drafts(account):
+        n = 1
+        for item in account.drafts.all():
+            if item.subject:
+                print(f'{n}. {item.subject}')
+                print(f'To: {", ".join(recipient.email_address for recipient in item.to_recipients)}')
+                print(f'Cc: {", ".join(recipient.email_address for recipient in item.cc_recipients)}')
+                print(f"Sent: {item.datetime_sent}")
+                print(f"Body: {item.body}")
+                print("-"*50)
+                n += 1
+
+    def show_output(subject, body):
+        print("*"*50)
+        print("*OUTPUT*\n")
+        print(f"SUBJECT: {subject}\n")
+        print(f"BODY: {body}\n")
+        # print a bar with equal signs
+        print("="*50)
+
 
     @staticmethod
     def write_tracer_wire(tolist, cclist, ticketnumber, address, xl, pic):
@@ -113,7 +137,7 @@ Craig Huckson
         print("Email saved to drafts")
 
     @staticmethod
-    def write_telmax_tracer_wire(ticket:str,message:str):
+    def write_telmax_tracer_wire(ticket: str, message: str):
         acct = Email.start()
         st = (ticket, "tracer wire needed")
         substr = " - ".join(st)
@@ -136,6 +160,7 @@ Craig Huckson
             cc_recipients=Email.tmx_cclist,
         )
         m.save()
+        Email.show_output(substr,bodystr)
         print("Email saved to drafts")
 
     @staticmethod
